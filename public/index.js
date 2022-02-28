@@ -13,26 +13,72 @@ agregarProducto.addEventListener('submit', e => {
     agregarProducto.reset()
 })
 
-socket.on('productos', productos => {
-    console.log('resultado index socket');
-    console.log(productos);
+socket.on('productos', async  productos => {
+    vistaTabla(productos).then(html => {
+        document.getElementById('listadoProductos').innerHTML = html
+    })
 })
 
-// socket.on('productos', productos => {
-//     vistaTabla(productos).then(html => {
-//         document.getElementById('listadoProductos').innerHTML = html
-//     })
+async function vistaTabla(productos) {
+    const res = await fetch('ListaProductos.hbs')
+    const resp = await res.text()
+    const plantilla = Handlebars.compile(resp)
+    // const html = plantilla({ productos })
+    const html = plantilla({
+        Products: productos,
+        ProductsQty: productos.length
+    })
+    return html
+}
+
+//MENSAJES
+const inputUsuario = document.getElementById('inputUser')
+const inputMensaje = document.getElementById('inputMensaje')
+const botonMensaje = document.getElementById('botonEnvio')
+
+const imprimirMensajes = document.getElementById('formMensajes')
+imprimirMensajes.addEventListener('submit', e => {
+    e.preventDefault()
+
+    const mensaje = {
+        author: inputUsuario.value,
+        message: inputMensaje.value
+    }
+    socket.emit('mensajeNuevo', mensaje)
+    imprimirMensajes.reset()
+    inputMensaje.focus()
+})
+
+// socket.on('mensajes', mensajes => {
+//     console.log('mensajes recibidos');
+//     console.log(mensajes);
 // })
 
-// function vistaTabla(productos) {
-//     return fetch('ListaProductos.hbs')
-//         .then(res => res.text())
-//         .then(resp => {
-//             const plantilla = Handlebars.compile(resp)
-//             // const html = plantilla({ productos })
-//             const html = plantilla({
-//                 Products: productos
-//             })
-//             return html
-//         })
-// }
+socket.on('mensajes', mensajes => {
+    const html = contenedorMensajes(mensajes)
+    document.getElementById('contenedorMensajes').innerHTML = html
+})
+
+function contenedorMensajes(mensajes) {
+    return mensajes.map(mensaje => {
+        return (`
+            <div>
+                <b style="color:blue;">${mensaje.author}</b>
+                [<span style="color:brown;">${mensaje.fyh}</span>] :
+                <i style="color:green;">${mensaje.message}</i>
+            </div>
+        `)
+    }).join(" ")
+}
+
+inputUsuario.addEventListener('input', () => {
+    const correo = inputUsuario.value.length
+    const mensaje = inputMensaje.value.length
+    inputMensaje.disabled = !correo
+    botonMensaje.disabled = !correo || !mensaje
+})
+
+inputMensaje.addEventListener('input', () => {
+    const mensaje = inputMensaje.value.length
+    botonMensaje.disabled = !mensaje 
+})
